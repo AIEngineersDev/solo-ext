@@ -3,15 +3,15 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
-module.exports = {
-  mode: 'production', // Add this line to fix the warning
+module.exports = (env) => ({
+  mode: 'production',
   entry: {
     popup: './src/popup.js',
     content: './src/content.js',
     background: './src/background.js',
   },
   output: {
-    path: path.resolve(__dirname, 'dist'),
+    path: path.resolve(__dirname, env.firefox ? 'dist/firefox' : 'dist/chrome'),
     filename: '[name].js',
     clean: true
   },
@@ -62,7 +62,11 @@ module.exports = {
     }),
     new CopyPlugin({
       patterns: [
-        { from: 'src/assets', to: 'assets' }
+        { from: 'src/assets', to: 'assets' },
+        env.firefox ? { 
+          from: 'node_modules/webextension-polyfill/dist/browser-polyfill.min.js',
+          to: 'browser-polyfill.js'
+        } : { from: 'src/empty.js', to: 'browser-polyfill.js' }
       ],
     }),
   ],
@@ -77,4 +81,4 @@ module.exports = {
     hints: false
   },
   cache: false
-};
+});
