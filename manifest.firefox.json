@@ -35,7 +35,8 @@
     "_execute_sidebar_action": {
       "suggested_key": {
         "default": "Ctrl+Shift+Y"
-      }
+      },
+      "description": "Toggle sidebar"
     }
   },
   "content_scripts": [{

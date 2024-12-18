@@ -44,11 +44,13 @@ export async function injectContentScript(tabId) {
 export async function openSidePanel(tab) {
   if (getBrowserType() === 'firefox') {
     try {
-      // For Firefox, just try to open without closing first
+      // Use a more reliable method for Firefox
+      await browser.sidebarAction.close();
+      // Longer delay to ensure proper state reset
+      await new Promise(resolve => setTimeout(resolve, 250));
       await browser.sidebarAction.open();
     } catch (e) {
       console.error('Sidebar error:', e);
-      // Fallback to popup if sidebar fails
       return browser.windows.create({
         url: 'popup.html',
         type: 'popup',
@@ -64,9 +66,12 @@ export async function openSidePanel(tab) {
 export async function toggleSidebar() {
   if (getBrowserType() === 'firefox') {
     try {
-      // Instead of checking isOpen which can be unreliable,
-      // always try to open the sidebar
-      await browser.sidebarAction.open();
+      // Check if sidebar exists in current window
+      const currentWindow = await browser.windows.getCurrent();
+      await browser.sidebarAction.close();
+      // Longer delay
+      await new Promise(resolve => setTimeout(resolve, 250));
+      await browser.sidebarAction.open({ windowId: currentWindow.id });
     } catch (e) {
       console.error('Toggle sidebar error:', e);
       throw e;

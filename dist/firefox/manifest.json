@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Chat Extension",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A chat extension using Hugging Face models",
   "permissions": [
     "storage",
@@ -35,7 +35,8 @@
     "_execute_sidebar_action": {
       "suggested_key": {
         "default": "Ctrl+Shift+Y"
-      }
+      },
+      "description": "Toggle sidebar"
     }
   },
   "content_scripts": [{

@@ -101,17 +101,22 @@ browserAPI.action.onClicked.addListener(async (tab) => {
 
 // Handle browser action click
 if (getBrowserType() === 'firefox') {
-  browser.browserAction.onClicked.addListener(async (tab) => {
-    await toggleSidebar().catch(error => {
+  browser.browserAction.onClicked.addListener(async () => {
+    try {
+      // Use direct sidebar action
+      const currentWindow = await browser.windows.getCurrent();
+      await browser.sidebarAction.close();
+      await new Promise(resolve => setTimeout(resolve, 250));
+      await browser.sidebarAction.open({ windowId: currentWindow.id });
+    } catch (error) {
       console.error('Failed to toggle sidebar:', error);
-      // Fallback to popup if sidebar fails
       browser.windows.create({
         url: 'popup.html',
         type: 'popup',
         width: 400,
         height: 600
       });
-    });
+    }
   });
 } else {
   chrome.action.onClicked.addListener(async (tab) => {
