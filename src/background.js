@@ -1,5 +1,5 @@
 import Client from './client.js';
-import { browserAPI, openSidePanel } from './utils.js';
+import { browserAPI, openSidePanel, getBrowserType, toggleSidebar } from './utils.js';
 
 const rateLimiter = {
   lastRequest: 0,
@@ -98,3 +98,32 @@ browserAPI.action.onClicked.addListener(async (tab) => {
     });
   }
 });
+
+// Handle browser action click
+if (getBrowserType() === 'firefox') {
+  browser.browserAction.onClicked.addListener(async (tab) => {
+    await toggleSidebar().catch(error => {
+      console.error('Failed to toggle sidebar:', error);
+      // Fallback to popup if sidebar fails
+      browser.windows.create({
+        url: 'popup.html',
+        type: 'popup',
+        width: 400,
+        height: 600
+      });
+    });
+  });
+} else {
+  chrome.action.onClicked.addListener(async (tab) => {
+    if (!tab.url.startsWith('chrome://') && !tab.url.startsWith('about:')) {
+      await openSidePanel(tab);
+    }
+  });
+}
+
+// Initialize sidebar on install for Firefox
+if (getBrowserType() === 'firefox') {
+  browser.runtime.onInstalled.addListener(() => {
+    browser.sidebarAction.open();
+  });
+}

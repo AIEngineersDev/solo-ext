@@ -1,3 +1,10 @@
+import { browserAPI, getBrowserType, injectContentScript } from './utils.js';
+
+if (typeof browser === 'undefined' && typeof chrome !== 'undefined') {
+  // We're in Chrome, the polyfill script will handle this
+  console.debug('Loading in Chrome mode');
+}
+
 import hljs from 'highlight.js';
 import { marked } from 'marked';
 import 'highlight.js/styles/github.css';
@@ -6,7 +13,7 @@ import './input.css';
 
 // Add at the beginning after imports
 async function initializeTheme() {
-  const { theme } = await chrome.storage.sync.get(['theme']);
+  const { theme } = await browserAPI.storage.sync.get(['theme']);
   applyTheme(theme || 'light');
 }
 
@@ -31,7 +38,7 @@ function toggleSettingsPanel() {
 }
 
 async function loadSettings() {
-  const settings = await chrome.storage.sync.get({
+  const settings = await browserAPI.storage.sync.get({
     apiUrl: 'http://localhost:8000',
     apiToken: '',
     modelName: 'meta-llama/Llama-2-7b-chat',
@@ -70,7 +77,7 @@ async function handleSaveSettings() {
     }
 
     // Save settings
-    await chrome.storage.sync.set({
+    await browserAPI.storage.sync.set({
       apiUrl,
       apiToken,
       modelName,
@@ -127,13 +134,13 @@ let pollInterval = null;
 
 async function pollForContentChanges() {
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const [tab] = await browserAPI.tabs.query({ active: true, currentWindow: true });
     
     if (!tab || !tab.url || tab.url.startsWith('chrome://')) {
       return;
     }
 
-    const response = await chrome.tabs.sendMessage(tab.id, { 
+    const response = await browserAPI.tabs.sendMessage(tab.id, { 
       action: 'getContent'
     }).catch(() => null);
 
@@ -157,23 +164,20 @@ async function loadTabContent() {
   content.value = '';
   
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const [tab] = await browserAPI.tabs.query({ active: true, currentWindow: true });
     
-    if (!tab || !tab.url || tab.url.startsWith('chrome://')) {
+    if (!tab || !tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('about:')) {
       content.value = "Cannot access this page's content.";
       return;
     }
 
-    // Always inject the content script
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ['content.js']
-    });
+    // Inject content script
+    await injectContentScript(tab.id);
 
     // Short delay to ensure content script is ready
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    const response = await chrome.tabs.sendMessage(tab.id, { 
+    const response = await browserAPI.tabs.sendMessage(tab.id, { 
       action: 'getContent'
     }).catch(err => {
       console.error('Message error:', err);
@@ -183,12 +187,10 @@ async function loadTabContent() {
     content.value = response.content;
     lastContent = response.content;
     
-    // Clear existing poll interval if any
     if (pollInterval) {
       clearInterval(pollInterval);
     }
     
-    // Start polling every 1 second
     pollInterval = setInterval(pollForContentChanges, 1000);
     
   } catch (error) {
@@ -221,13 +223,13 @@ async function handleQuickAction() {
       makeList: "Please convert this text into a bullet point list:"
     };
     
-    const result = await chrome.runtime.sendMessage({
+    const result = await browserAPI.runtime.sendMessage({
       action: 'sendToAPI',
       content: `${prompts[this.dataset.action]} ${content}`
     });
     
-    if (chrome.runtime.lastError) {
-      throw new Error(chrome.runtime.lastError.message);
+    if (browserAPI.runtime.lastError) {
+      throw new Error(browserAPI.runtime.lastError.message);
     }
     
     displayResponse(result);
@@ -257,13 +259,13 @@ async function handleSendToChat() {
   responseArea.textContent = '';
   
   try {
-    const result = await chrome.runtime.sendMessage({
+    const result = await browserAPI.runtime.sendMessage({
       action: 'sendToAPI',
       content: `Context: ${content.value}\n\nQuestion: ${question.value}`
     });
     
-    if (chrome.runtime.lastError) {
-      throw new Error(chrome.runtime.lastError.message);
+    if (browserAPI.runtime.lastError) {
+      throw new Error(browserAPI.runtime.lastError.message);
     }
     
     displayResponse(result);
@@ -294,6 +296,10 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeTheme();
   initializeResponseArea();
   updateFooterInfo();
+  initializeSettings(); // Add this line
+  
+  // Remove or comment out the old settings button initialization
+  // document.getElementById('toggleSettings').addEventListener('click', toggleSettingsPanel);
   
   // Initialize settings link and handler
   const settingsLink = document.getElementById('settingsLink');
@@ -374,12 +380,12 @@ function clearUIState() {
 }
 
 // Modify tab listeners to include clearing UI state
-chrome.tabs.onActivated.addListener(() => {
+browserAPI.tabs.onActivated.addListener(() => {
   clearUIState();
   loadTabContent();
 });
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+browserAPI.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status === 'complete') {
     clearUIState();
     loadTabContent();
@@ -468,7 +474,7 @@ window.addEventListener('unload', () => {
 
 // Add system theme change listener
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', async (e) => {
-  const { theme } = await chrome.storage.sync.get(['theme']);
+  const { theme } = await browserAPI.storage.sync.get(['theme']);
   if (theme === 'system') {
     applyTheme('system');
   }
@@ -477,7 +483,7 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', asy
 // Make updateFooterInfo more robust
 async function updateFooterInfo() {
   try {
-    const settings = await chrome.storage.sync.get(['apiUrl', 'modelName']);
+    const settings = await browserAPI.storage.sync.get(['apiUrl', 'modelName']);
     console.log('Footer info update:', settings);
     
     const apiUrlDisplay = document.getElementById('apiUrlDisplay');
@@ -500,7 +506,7 @@ async function updateFooterInfo() {
 }
 
 // Listen for settings changes from any source
-chrome.storage.onChanged.addListener((changes, namespace) => {
+browserAPI.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'sync') {
     // Update theme if it changed
     if (changes.theme) {
@@ -515,7 +521,7 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 });
 
 // Also listen for direct messages from settings page
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'settingsUpdated') {
     updateFooterInfo();
     if (message.settings.theme) {
@@ -525,7 +531,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // Update the settings change listener
-chrome.runtime.onMessage.addListener((message) => {
+browserAPI.runtime.onMessage.addListener((message) => {
   if (message.action === 'settingsUpdated') {
     console.log('Settings updated:', message.settings);
     updateFooterInfo();
@@ -541,6 +547,10 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeTheme();
   initializeResponseArea();
   updateFooterInfo();
+  initializeSettings(); // Add this line
+  
+  // Remove or comment out the old settings button initialization
+  // document.getElementById('toggleSettings').addEventListener('click', toggleSettingsPanel);
   
   // Initialize settings link with separate handler
   document.getElementById('settingsLink').addEventListener('click', (e) => {
@@ -556,43 +566,31 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Get DOM elements
-    const settingsButton = document.getElementById('toggleSettings');
-    const settingsPanel = document.getElementById('settingsPanel');
-    const saveSettingsButton = document.getElementById('saveSettings');
-    const saveMessage = document.getElementById('saveMessage');
-    const content = document.getElementById('content');
-    const question = document.getElementById('question');
-    const clearQuestionButton = document.getElementById('clearQuestion');
-    const sendButton = document.getElementById('sendToChat');
-    const responseContent = document.getElementById('responseContent');
-    const copyButton = document.getElementById('copyToClipboard');
-    const loading = document.getElementById('loading');
-    const apiUrlDisplay = document.getElementById('apiUrlDisplay');
-    const modelNameDisplay = document.getElementById('modelNameDisplay');
-    const quickButtons = document.querySelectorAll('.button.quick');
+function initializeSettings() {
+  const settingsButton = document.getElementById('toggleSettings');
+  const settingsPanel = document.getElementById('settingsPanel');
+  const saveSettingsButton = document.getElementById('saveSettings');
 
-    // Initialize settings
-    loadSettings();
+  if (settingsButton && settingsPanel) {
+    // Remove any existing listeners first
+    settingsButton.replaceWith(settingsButton.cloneNode(true));
+    
+    // Get the fresh reference after replacing
+    const newSettingsButton = document.getElementById('toggleSettings');
+    
+    // Add new click listener
+    newSettingsButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      settingsPanel.classList.toggle('hidden');
+    });
+  }
 
-    settingsButton.addEventListener('click', toggleSettingsPanel);
-    saveSettingsButton.addEventListener('click', handleSaveSettings);
-    clearQuestionButton.addEventListener('click', () => {
-        question.value = '';
-        updateSendButton();
-    });
-    sendButton.addEventListener('click', handleSendToChat);
-    copyButton.addEventListener('click', handleCopyToClipboard);
-    question.addEventListener('input', () => {
-        sendButton.disabled = !question.value.trim();
-    });
-    content.addEventListener('input', () => {
-        sendButton.disabled = !question.value.trim();
-    });
-
-    // Quick action buttons
-    quickButtons.forEach(button => {
-        button.addEventListener('click', handleQuickAction);
-    });
-});
+  if (saveSettingsButton) {
+    // Remove any existing listeners
+    saveSettingsButton.replaceWith(saveSettingsButton.cloneNode(true));
+    
+    // Get fresh reference and add listener
+    document.getElementById('saveSettings').addEventListener('click', handleSaveSettings);
+  }
+}

@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
-    "build": "npm run build:chrome && npm run build:firefox",
+    "build": "npm run clean && mkdir -p dist && npm run build:chrome && npm run build:firefox && npm run icons",
     "build:chrome": "webpack --mode production && tailwindcss -i ./src/input.css -o ./dist/chrome/styles.css && cp manifest.json dist/chrome/",
     "build:firefox": "webpack --mode production --env firefox=true && tailwindcss -i ./src/input.css -o ./dist/firefox/styles.css && cp manifest.firefox.json dist/firefox/manifest.json",
     "dev": "webpack --mode development --watch",
@@ -13,7 +13,8 @@
     "format": "prettier --write src/**/*.{js,css,html}",
     "postbuild": "cp manifest.json dist/",
     "icons": "node scripts/generate-icons.js",
-    "prebuild": "npm run icons"
+    "prebuild": "npm run icons",
+    "clean": "rimraf dist/*"
   },
   "dependencies": {
     "@tailwindcss/forms": "^0.5.9",

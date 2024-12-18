@@ -7,7 +7,8 @@
     "storage",
     "activeTab",
     "tabs",
-    "<all_urls>"
+    "<all_urls>",
+    "scripting"
   ],
   "icons": {
     "16": "assets/icons/icon16.png",
@@ -19,12 +20,27 @@
       "16": "assets/icons/icon16.png",
       "48": "assets/icons/icon48.png",
       "128": "assets/icons/icon128.png"
+    }
+  },
+  "sidebar_action": {
+    "default_title": "AI Assistant",
+    "default_panel": "popup.html",
+    "default_icon": {
+      "16": "assets/icons/icon16.png",
+      "48": "assets/icons/icon48.png"
     },
-    "default_popup": "popup.html"
+    "open_at_install": true
+  },
+  "commands": {
+    "_execute_sidebar_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Y"
+      }
+    }
   },
   "content_scripts": [{
     "matches": ["<all_urls>"],
-    "js": ["content.js"]
+    "js": ["browser-polyfill.js", "content.js"]
   }],
   "background": {
     "scripts": ["browser-polyfill.js", "background.js"]
@@ -34,11 +50,12 @@
     "open_in_tab": true
   },
   "web_accessible_resources": [
-    "assets/*"
+    "assets/*",
+    "popup.html"
   ],
   "browser_specific_settings": {
     "gecko": {
-      "id": "chat-ext",
+      "id": "chat-ext@hf.co",
       "strict_min_version": "57.0"
     }
   }
