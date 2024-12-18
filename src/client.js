@@ -1,6 +1,7 @@
+import { getToken } from './utils.js';
+
 class Client {
   constructor(config) {
-    this.apiKey = config.apiKey;
     this.baseURL = config.baseURL;
     this.chat = {
       completions: {
@@ -10,11 +11,16 @@ class Client {
   }
 
   async createChatCompletion(params) {
+    const token = await getToken();
+    if (!token) {
+      throw new Error('API token not found');
+    }
+
     const response = await fetch(`${this.baseURL}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
         model: params.model,

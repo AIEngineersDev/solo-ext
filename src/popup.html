@@ -63,62 +63,77 @@
         <!-- Settings Panel -->
         <div id="settingsPanel" 
              class="hidden fixed inset-0 z-[9999] bg-surface-50/95 dark:bg-dark-surface-50/95 p-4 overflow-y-auto">
-            <div class="bg-white dark:bg-dark-surface-100 rounded-xl border border-surface-200 dark:border-dark-surface-200 p-4 shadow-soft max-w-lg mx-auto">
-                <h2 class="text-lg font-semibold mb-4 text-surface-900 dark:text-dark-surface-900">Settings</h2>
+            <div class="bg-white dark:bg-dark-surface-100 rounded-xl border border-surface-200 dark:border-dark-surface-200 p-4 shadow-soft max-w-md mx-auto">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-surface-900 dark:text-dark-surface-900">Settings</h2>
+                    <button id="closeSettings" class="text-surface-500 hover:text-surface-700 dark:text-dark-surface-500 dark:hover:text-dark-surface-700">
+                        <i class="ri-close-line text-xl"></i>
+                    </button>
+                </div>
                 
-                <div class="space-y-4">
-                    <!-- API Settings -->
-                    <div class="bg-surface-50 dark:bg-dark-surface-200 rounded-lg border border-surface-200 dark:border-dark-surface-200 p-3">
-                        <label class="block text-sm font-medium text-surface-900 dark:text-dark-surface-900 mb-1">
-                            API URL
-                            <input type="text" id="apiUrl" class="mt-1 w-full rounded-lg border-surface-200 dark:border-dark-surface-200 bg-white dark:bg-dark-surface-100 text-surface-900 dark:text-dark-surface-900 focus:border-primary-500 focus:ring-primary-500">
+                <div class="space-y-3">
+                    <!-- API Settings Group -->
+                    <div class="space-y-2">
+                        <label class="block">
+                            <span class="text-xs font-medium text-surface-700 dark:text-dark-surface-700">API URL</span>
+                            <input type="text" id="apiUrl" 
+                                class="mt-1 w-full h-8 px-2 text-sm rounded-md border-surface-200 dark:border-dark-surface-200 bg-white dark:bg-dark-surface-100 text-surface-900 dark:text-dark-surface-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                                placeholder="http://localhost:8000">
+                        </label>
+
+                        <label class="block">
+                            <span class="text-xs font-medium text-surface-700 dark:text-dark-surface-700">API Token</span>
+                            <div class="relative">
+                                <input type="password" id="apiToken" 
+                                    class="mt-1 w-full h-8 px-2 text-sm rounded-md border-surface-200 dark:border-dark-surface-200 bg-white dark:bg-dark-surface-100 text-surface-900 dark:text-dark-surface-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                                    placeholder="Your API token">
+                                <button id="toggleToken" class="absolute right-2 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-600">
+                                    <i class="ri-eye-line"></i>
+                                </button>
+                            </div>
                         </label>
                     </div>
 
-                    <div class="bg-surface-50 dark:bg-dark-surface-200 rounded-lg border border-surface-200 dark:border-dark-surface-200 p-3">
-                        <label class="block text-sm font-medium text-surface-900 dark:text-dark-surface-900 mb-1">
-                            API Token
-                            <input type="password" id="apiToken" class="mt-1 w-full rounded-lg border-surface-200 dark:border-dark-surface-200 bg-white dark:bg-dark-surface-100 text-surface-900 dark:text-dark-surface-900 focus:border-primary-500 focus:ring-primary-500">
+                    <!-- Model Settings Group -->
+                    <div class="space-y-2">
+                        <label class="block">
+                            <span class="text-xs font-medium text-surface-700 dark:text-dark-surface-700">Model Name</span>
+                            <input type="text" id="modelName" 
+                                class="mt-1 w-full h-8 px-2 text-sm rounded-md border-surface-200 dark:border-dark-surface-200 bg-white dark:bg-dark-surface-100 text-surface-900 dark:text-dark-surface-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                                placeholder="meta-llama/Llama-2-7b-chat">
                         </label>
-                    </div>
 
-                    <div class="bg-surface-50 dark:bg-dark-surface-200 rounded-lg border border-surface-200 dark:border-dark-surface-200 p-3">
-                        <label class="block text-sm font-medium text-surface-900 dark:text-dark-surface-900 mb-1">
-                            Model Name
-                            <input type="text" id="modelName" class="mt-1 w-full rounded-lg border-surface-200 dark:border-dark-surface-200 bg-white dark:bg-dark-surface-100 text-surface-900 dark:text-dark-surface-900 focus:border-primary-500 focus:ring-primary-500">
-                        </label>
-                    </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <label class="block">
+                                <span class="text-xs font-medium text-surface-700 dark:text-dark-surface-700">Max Tokens</span>
+                                <input type="number" id="maxTokens" 
+                                    class="mt-1 w-full h-8 px-2 text-sm rounded-md border-surface-200 dark:border-dark-surface-200 bg-white dark:bg-dark-surface-100 text-surface-900 dark:text-dark-surface-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                                    min="1" max="2048" placeholder="500">
+                            </label>
 
-                    <div class="bg-surface-50 dark:bg-dark-surface-200 rounded-lg border border-surface-200 dark:border-dark-surface-200 p-3">
-                        <label class="block text-sm font-medium text-surface-900 dark:text-dark-surface-900 mb-1">
-                            Max Tokens
-                            <input type="number" id="maxTokens" min="1" max="2048" class="mt-1 w-full rounded-lg border-surface-200 dark:border-dark-surface-200 bg-white dark:bg-dark-surface-100 text-surface-900 dark:text-dark-surface-900 focus:border-primary-500 focus:ring-primary-500">
-                        </label>
-                    </div>
-
-                    <div class="bg-surface-50 dark:bg-dark-surface-200 rounded-lg border border-surface-200 dark:border-dark-surface-200 p-3">
-                        <label class="block text-sm font-medium text-surface-900 dark:text-dark-surface-900 mb-1">
-                            Theme
-                            <select id="theme" class="mt-1 w-full rounded-lg border-surface-200 dark:border-dark-surface-200 bg-white dark:bg-dark-surface-100 text-surface-900 dark:text-dark-surface-900 focus:border-primary-500 focus:ring-primary-500">
-                                <option value="light">Light</option>
-                                <option value="dark">Dark</option>
-                                <option value="system">System</option>
-                            </select>
-                        </label>
+                            <label class="block">
+                                <span class="text-xs font-medium text-surface-700 dark:text-dark-surface-700">Theme</span>
+                                <select id="theme" 
+                                    class="mt-1 w-full h-8 px-2 text-sm rounded-md border-surface-200 dark:border-dark-surface-200 bg-white dark:bg-dark-surface-100 text-surface-900 dark:text-dark-surface-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                                    <option value="light">Light</option>
+                                    <option value="dark">Dark</option>
+                                    <option value="system">System</option>
+                                </select>
+                            </label>
+                        </div>
                     </div>
                 </div>
 
-                <div class="mt-6 flex items-center justify-between">
-                    <span id="saveMessage" class="text-sm hidden"></span>
-                    <div class="flex gap-2">
-                        <button id="saveSettings" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg">
-                            Save
-                        </button>
-                    </div>
+                <div class="mt-4 flex items-center justify-between pt-3 border-t border-surface-200 dark:border-dark-surface-200">
+                    <span id="saveMessage" class="text-xs text-surface-600 dark:text-dark-surface-600 hidden"></span>
+                    <button id="saveSettings" 
+                        class="px-4 py-1.5 text-sm bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">
+                        Save Changes
+                    </button>
                 </div>
             </div>
         </div>
-      
+
         <div class="flex-1 flex flex-col p-4 space-y-4 min-h-0">
             <!-- Context Section -->
             <div class="space-y-1.5">

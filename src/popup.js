@@ -1,4 +1,4 @@
-import { browserAPI, getBrowserType, injectContentScript } from './utils.js';
+import { browserAPI, getBrowserType, injectContentScript, saveToken } from './utils.js';
 
 if (typeof browser === 'undefined' && typeof chrome !== 'undefined') {
   // We're in Chrome, the polyfill script will handle this
@@ -76,33 +76,35 @@ async function handleSaveSettings() {
       throw new Error('Max tokens must be between 1 and 2048');
     }
 
-    // Save settings
+    // Save token separately using encryption
+    if (apiToken) {
+      await saveToken(apiToken);
+    }
+
+    // Save other settings normally
     await browserAPI.storage.sync.set({
       apiUrl,
-      apiToken,
       modelName,
       maxTokens,
       theme
     });
 
-    saveMessage.textContent = '✓ Settings saved!';
+    saveMessage.textContent = 'Settings saved successfully';
     saveMessage.classList.remove('text-red-600');
     saveMessage.classList.add('text-green-600');
 
-    // Close settings panel after brief delay
     setTimeout(() => {
-      toggleSettingsPanel();
+      document.getElementById('settingsPanel').classList.add('hidden');
       saveButton.disabled = false;
       saveMessage.classList.add('hidden');
     }, 750);
 
-    // Notify about settings update
     updateFooterInfo();
     applyTheme(theme);
 
   } catch (error) {
     console.error('Save error:', error);
-    saveMessage.textContent = `✗ ${error.message}`;
+    saveMessage.textContent = error.message;
     saveMessage.classList.remove('text-green-600');
     saveMessage.classList.add('text-red-600');
     saveButton.disabled = false;
@@ -569,7 +571,10 @@ document.addEventListener('DOMContentLoaded', () => {
 function initializeSettings() {
   const settingsButton = document.getElementById('toggleSettings');
   const settingsPanel = document.getElementById('settingsPanel');
+  const closeSettings = document.getElementById('closeSettings');
   const saveSettingsButton = document.getElementById('saveSettings');
+  const toggleToken = document.getElementById('toggleToken');
+  const apiToken = document.getElementById('apiToken');
 
   if (settingsButton && settingsPanel) {
     // Remove any existing listeners first
@@ -583,6 +588,20 @@ function initializeSettings() {
       e.preventDefault();
       e.stopPropagation();
       settingsPanel.classList.toggle('hidden');
+    });
+  }
+
+  if (closeSettings) {
+    closeSettings.addEventListener('click', () => {
+      settingsPanel.classList.add('hidden');
+    });
+  }
+
+  if (toggleToken && apiToken) {
+    toggleToken.addEventListener('click', () => {
+      const isPassword = apiToken.type === 'password';
+      apiToken.type = isPassword ? 'text' : 'password';
+      toggleToken.innerHTML = `<i class="ri-eye${isPassword ? '-off-' : '-'}line"></i>`;
     });
   }
 
