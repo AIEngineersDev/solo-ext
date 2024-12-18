@@ -13,17 +13,37 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
       - name: Get version from manifest
         id: get_version
         run: |
           VERSION=$(cat manifest.json | jq -r .version)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Create release archive
+      - name: Build Chrome version
+        run: npm run build
+        
+      - name: Create Chrome ZIP
         run: |
-          mkdir -p "chat-ext-${{ steps.get_version.outputs.version }}"
-          cp -r dist/* "chat-ext-${{ steps.get_version.outputs.version }}/"
-          zip -r "chat-ext-${{ steps.get_version.outputs.version }}.zip" "chat-ext-${{ steps.get_version.outputs.version }}"
+          cd dist/chrome
+          zip -r ../../chat-ext-chrome-${{ steps.get_version.outputs.version }}.zip ./*
+          cd ../..
+
+      - name: Build Firefox version
+        run: npm run build -- --env firefox=true
+        
+      - name: Create Firefox ZIP
+        run: |
+          cd dist/firefox
+          zip -r ../../chat-ext-firefox-${{ steps.get_version.outputs.version }}.zip ./*
+          cd ../..
 
       - name: Create Release
         id: create_release
@@ -36,18 +56,30 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload Release Asset
+      - name: Upload Chrome Release Asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./chat-ext-${{ steps.get_version.outputs.version }}.zip
-          asset_name: chat-ext-${{ steps.get_version.outputs.version }}.zip
+          asset_path: ./chat-ext-chrome-${{ steps.get_version.outputs.version }}.zip
+          asset_name: chat-ext-chrome-${{ steps.get_version.outputs.version }}.zip
           asset_content_type: application/zip
 
-      - name: Upload artifact
+      - name: Upload Firefox Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./chat-ext-firefox-${{ steps.get_version.outputs.version }}.zip
+          asset_name: chat-ext-firefox-${{ steps.get_version.outputs.version }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: release-archive
-          path: chat-ext-${{ steps.get_version.outputs.version }}.zip
+          name: release-archives
+          path: |
+            chat-ext-chrome-${{ steps.get_version.outputs.version }}.zip
+            chat-ext-firefox-${{ steps.get_version.outputs.version }}.zip

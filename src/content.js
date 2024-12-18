@@ -1,3 +1,5 @@
+import { browserAPI } from './utils.js';
+
 // Global state
 const state = {
   port: null,
@@ -9,7 +11,7 @@ function connectToExtension() {
   // Only create connection if it doesn't exist or is disconnected
   if (!state.port || state.port.disconnected) {
     try {
-      state.port = chrome.runtime.connect({ name: 'content-script' });
+      state.port = browserAPI.runtime.connect({ name: 'content-script' });
       state.port.onDisconnect.addListener(() => {
         state.port.disconnected = true;
       });
@@ -61,7 +63,7 @@ function getPageContent() {
 }
 
 // Message listener
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'getContent') {
     connectToExtension();
     sendResponse({ content: getPageContent() });

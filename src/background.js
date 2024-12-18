@@ -1,4 +1,5 @@
 import Client from './client.js';
+import { browserAPI, openSidePanel, getBrowserType, toggleSidebar } from './utils.js';
 
 const rateLimiter = {
   lastRequest: 0,
@@ -7,7 +8,7 @@ const rateLimiter = {
 
 async function sendToAPI(content) {
   try {
-    const settings = await chrome.storage.sync.get(['apiUrl', 'apiToken', 'modelName', 'maxTokens']);
+    const settings = await browserAPI.storage.sync.get(['apiUrl', 'apiToken', 'modelName', 'maxTokens']);
     
     if (!settings.apiUrl) {
       throw new Error('API URL is not configured. Please open settings and configure the API URL.');
@@ -79,17 +80,17 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 });
 
 // Handle extension icon click to open sidebar
-chrome.action.onClicked.addListener(async (tab) => {
-  if (tab.url.startsWith('chrome://')) {
-    return; // Can't open on chrome:// URLs
+browserAPI.action.onClicked.addListener(async (tab) => {
+  if (tab.url.startsWith('chrome://') || tab.url.startsWith('about:')) {
+    return; // Can't open on browser internal URLs
   }
   
   try {
-    await chrome.sidePanel.open({ tabId: tab.id });
+    await openSidePanel(tab);
   } catch (error) {
-    console.error('Failed to open side panel:', error);
+    console.error('Failed to open panel:', error);
     // Fallback to opening as a popup if side panel fails
-    chrome.windows.create({
+    browserAPI.windows.create({
       url: 'popup.html',
       type: 'popup',
       width: 400,
@@ -97,3 +98,32 @@ chrome.action.onClicked.addListener(async (tab) => {
     });
   }
 });
+
+// Handle browser action click
+if (getBrowserType() === 'firefox') {
+  browser.browserAction.onClicked.addListener(async (tab) => {
+    await toggleSidebar().catch(error => {
+      console.error('Failed to toggle sidebar:', error);
+      // Fallback to popup if sidebar fails
+      browser.windows.create({
+        url: 'popup.html',
+        type: 'popup',
+        width: 400,
+        height: 600
+      });
+    });
+  });
+} else {
+  chrome.action.onClicked.addListener(async (tab) => {
+    if (!tab.url.startsWith('chrome://') && !tab.url.startsWith('about:')) {
+      await openSidePanel(tab);
+    }
+  });
+}
+
+// Initialize sidebar on install for Firefox
+if (getBrowserType() === 'firefox') {
+  browser.runtime.onInstalled.addListener(() => {
+    browser.sidebarAction.open();
+  });
+}

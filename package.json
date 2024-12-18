@@ -5,19 +5,23 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
-    "build": "webpack --mode production && tailwindcss -i ./src/input.css -o ./dist/styles.css && node scripts/build.js",
+    "build": "npm run clean && mkdir -p dist && npm run build:chrome && npm run build:firefox && npm run icons",
+    "build:chrome": "webpack --mode production && tailwindcss -i ./src/input.css -o ./dist/chrome/styles.css && cp manifest.json dist/chrome/",
+    "build:firefox": "webpack --mode production --env firefox=true && tailwindcss -i ./src/input.css -o ./dist/firefox/styles.css && cp manifest.firefox.json dist/firefox/manifest.json",
     "dev": "webpack --mode development --watch",
     "lint": "eslint src/**/*.js",
     "format": "prettier --write src/**/*.{js,css,html}",
     "postbuild": "cp manifest.json dist/",
     "icons": "node scripts/generate-icons.js",
-    "prebuild": "npm run icons"
+    "prebuild": "npm run icons",
+    "clean": "rimraf dist/*"
   },
   "dependencies": {
     "@tailwindcss/forms": "^0.5.9",
     "highlight.js": "^11.9.0",
     "marked": "^9.0.3",
-    "remixicon": "^4.5.0"
+    "remixicon": "^4.5.0",
+    "webextension-polyfill": "^0.10.0"
   },
   "devDependencies": {
     "@babel/core": "^7.23.2",
@@ -46,7 +50,8 @@
     "webpack-cli": "^5.1.4"
   },
   "browserslist": [
-    "last 2 Chrome versions"
+    "last 2 Chrome versions",
+    "last 2 Firefox versions"
   ],
   "eslintConfig": {
     "extends": [

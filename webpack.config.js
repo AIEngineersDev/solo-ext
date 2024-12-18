@@ -2,16 +2,26 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const fs = require('fs');
 
-module.exports = {
-  mode: 'production', // Add this line to fix the warning
+// Helper function to check if directory exists and has files
+const hasFiles = (dir) => {
+  try {
+    return fs.existsSync(dir) && fs.readdirSync(dir).length > 0;
+  } catch (e) {
+    return false;
+  }
+};
+
+module.exports = (env) => ({
+  mode: 'production',
   entry: {
     popup: './src/popup.js',
     content: './src/content.js',
     background: './src/background.js',
   },
   output: {
-    path: path.resolve(__dirname, 'dist'),
+    path: path.resolve(__dirname, env.firefox ? 'dist/firefox' : 'dist/chrome'),
     filename: '[name].js',
     clean: true
   },
@@ -62,9 +72,26 @@ module.exports = {
     }),
     new CopyPlugin({
       patterns: [
-        { from: 'src/assets', to: 'assets' }
-      ],
-    }),
+        // Always copy browser-polyfill for Firefox
+        env.firefox ? { 
+          from: 'node_modules/webextension-polyfill/dist/browser-polyfill.min.js',
+          to: 'browser-polyfill.js'
+        } : { from: 'src/empty.js', to: 'browser-polyfill.js' },
+        
+        // Copy manifest based on target browser
+        {
+          from: env.firefox ? 'manifest.firefox.json' : 'manifest.json',
+          to: 'manifest.json'
+        },
+        
+        // Copy other assets if they exist
+        ...(hasFiles(path.join(__dirname, 'src/assets')) ? [{
+          from: 'src/assets',
+          to: 'assets',
+          noErrorOnMissing: true
+        }] : [])
+      ].filter(Boolean)
+    })
   ],
   resolve: {
     extensions: ['.js', '.css']
@@ -77,4 +104,4 @@ module.exports = {
     hints: false
   },
   cache: false
-};
+});

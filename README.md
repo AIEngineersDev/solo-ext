@@ -1,6 +1,6 @@
-# chat-ext: AI Assistant Chrome Extension
+# chat-ext: AI Assistant Browser Extension
 
-A Chrome extension that enables AI-powered chat interactions with webpage content using Hugging Face models.
+A browser extension that enables AI-powered chat interactions with webpage content using Hugging Face models.
 
 ![Screenshot](https://github.com/abhishekkrthakur/chat-ext/blob/main/ss.png?raw=true)
 
@@ -15,14 +15,21 @@ A Chrome extension that enables AI-powered chat interactions with webpage conten
 
 ## Usage
 
-To use the extension, you can download the latest release from the [Releases](https://github.com/abhishekkrthakur/chat-ext/releases) page
-or download the `dist` folder from this repository.
+To use the extension:
 
-Load the extension in Chrome:
-    - Open Chrome and navigate to `chrome://extensions`
-    - Enable "Developer mode"
-    - Click "Load unpacked"
-    - Select the `dist` directory from the project
+### Chrome
+1. Download the latest Chrome build from the [Releases](https://github.com/abhishekkrthakur/chat-ext/releases) page or build from source
+2. Open Chrome and navigate to `chrome://extensions`
+3. Enable "Developer mode"
+4. Click "Load unpacked"
+5. Select the `dist/chrome` directory from the project
+
+### Firefox
+1. Download the latest Firefox build from the [Releases](https://github.com/abhishekkrthakur/chat-ext/releases) page or build from source
+2. Open Firefox and navigate to `about:debugging`
+3. Click "This Firefox" in the sidebar
+4. Click "Load Temporary Add-on"
+5. Navigate to the `dist/firefox` directory and select `manifest.json`
 
 Click the extension icon and open settings. Configure the following:
    - API URL: Your Hugging Face API endpoint or local endpoint.
@@ -134,7 +141,12 @@ chat-ext/
 
 ## Browser Support
 
-Currently supports the latest versions of Google Chrome and Chrome-based browsers.
+- Google Chrome and Chromium-based browsers (latest 2 versions)
+- Mozilla Firefox (version 57.0 and later)
+
+Note: Some features may differ between browsers:
+- Chrome supports the side panel feature
+- Firefox will open the extension in a popup window instead
 
 ## Contributing
 

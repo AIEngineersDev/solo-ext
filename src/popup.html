@@ -5,6 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Assistant</title>
     <link href="styles.css" rel="stylesheet">
+    <script src="browser-polyfill.js"></script>
+    <style>
+        /* Firefox sidebar specific styles */
+        @-moz-document url-prefix() {
+            :root {
+                --sidebar-width: 400px;
+            }
+            
+            body {
+                width: var(--sidebar-width);
+                max-width: var(--sidebar-width);
+                min-width: var(--sidebar-width);
+                height: 100vh;
+                overflow-x: hidden;
+            }
+            
+            .container {
+                width: var(--sidebar-width);
+                height: 100vh;
+            }
+
+            /* Adjust content area spacing */
+            .flex-1.flex.flex-col.p-4 {
+                padding: 0.75rem;
+                width: var(--sidebar-width);
+            }
+
+            /* Make text inputs and buttons fit */
+            textarea, input, button {
+                max-width: calc(var(--sidebar-width) - 20px);
+            }
+
+            /* Adjust grid columns for better fit */
+            .grid-cols-4 {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.5rem;
+            }
+        }
+    </style>
 </head>
 <body class="bg-surface-50 dark:bg-dark-surface-50 w-full h-screen overflow-hidden flex flex-col">
     <div class="h-full flex flex-col">
@@ -22,7 +61,8 @@
         </div>
 
         <!-- Settings Panel -->
-        <div id="settingsPanel" class="hidden fixed inset-0 z-50 bg-surface-50/95 dark:bg-dark-surface-50/95 p-4">
+        <div id="settingsPanel" 
+             class="hidden fixed inset-0 z-[9999] bg-surface-50/95 dark:bg-dark-surface-50/95 p-4 overflow-y-auto">
             <div class="bg-white dark:bg-dark-surface-100 rounded-xl border border-surface-200 dark:border-dark-surface-200 p-4 shadow-soft max-w-lg mx-auto">
                 <h2 class="text-lg font-semibold mb-4 text-surface-900 dark:text-dark-surface-900">Settings</h2>
                 
