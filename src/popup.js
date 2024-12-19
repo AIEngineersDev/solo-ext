@@ -37,13 +37,27 @@ function toggleSettingsPanel() {
   panel.classList.toggle('hidden');
 }
 
+// Update the default prompts
+const defaultPrompts = {
+  proofread: "Please proofread this text:",
+  summarize: "Please summarize this text:",
+  rewrite: "Please rewrite this text:",
+  makeList: "Please convert this text into a bullet point list:"
+};
+
+// Modify loadSettings to include prompts
 async function loadSettings() {
   const settings = await browserAPI.storage.sync.get({
     apiUrl: 'http://localhost:8000',
     apiToken: '',
     modelName: 'meta-llama/Llama-2-7b-chat',
     maxTokens: 500,
-    theme: 'light'
+    theme: 'light',
+    // Add default prompts
+    proofreadPrompt: defaultPrompts.proofread,
+    summarizePrompt: defaultPrompts.summarize,
+    rewritePrompt: defaultPrompts.rewrite,
+    makeListPrompt: defaultPrompts.makeList
   });
   
   // Populate form fields
@@ -52,10 +66,17 @@ async function loadSettings() {
   document.getElementById('modelName').value = settings.modelName;
   document.getElementById('maxTokens').value = settings.maxTokens;
   document.getElementById('theme').value = settings.theme;
+  
+  // Populate prompt fields
+  document.getElementById('proofreadPrompt').value = settings.proofreadPrompt;
+  document.getElementById('summarizePrompt').value = settings.summarizePrompt;
+  document.getElementById('rewritePrompt').value = settings.rewritePrompt;
+  document.getElementById('makeListPrompt').value = settings.makeListPrompt;
 
   applyTheme(settings.theme);
 }
 
+// Modify handleSaveSettings to save prompts
 async function handleSaveSettings() {
   const saveButton = document.getElementById('saveSettings');
   const saveMessage = document.getElementById('saveMessage');
@@ -69,6 +90,12 @@ async function handleSaveSettings() {
     const modelName = document.getElementById('modelName').value.trim();
     const maxTokens = parseInt(document.getElementById('maxTokens').value);
     const theme = document.getElementById('theme').value;
+    
+    // Get prompt values
+    const proofreadPrompt = document.getElementById('proofreadPrompt').value.trim() || defaultPrompts.proofread;
+    const summarizePrompt = document.getElementById('summarizePrompt').value.trim() || defaultPrompts.summarize;
+    const rewritePrompt = document.getElementById('rewritePrompt').value.trim() || defaultPrompts.rewrite;
+    const makeListPrompt = document.getElementById('makeListPrompt').value.trim() || defaultPrompts.makeList;
 
     // Validate
     if (!apiUrl) throw new Error('API URL is required');
@@ -81,12 +108,16 @@ async function handleSaveSettings() {
       await saveToken(apiToken);
     }
 
-    // Save other settings normally
+    // Save settings including prompts
     await browserAPI.storage.sync.set({
       apiUrl,
       modelName,
       maxTokens,
-      theme
+      theme,
+      proofreadPrompt,
+      summarizePrompt,
+      rewritePrompt,
+      makeListPrompt
     });
 
     saveMessage.textContent = 'Settings saved successfully';
@@ -218,11 +249,18 @@ async function handleQuickAction() {
   responseArea.textContent = '';
   
   try {
+    const settings = await browserAPI.storage.sync.get({
+      proofreadPrompt: defaultPrompts.proofread,
+      summarizePrompt: defaultPrompts.summarize,
+      rewritePrompt: defaultPrompts.rewrite,
+      makeListPrompt: defaultPrompts.makeList
+    });
+    
     const prompts = {
-      proofread: "Please proofread this text:",
-      summarize: "Please summarize this text:",
-      rewrite: "Please rewrite this text:",
-      makeList: "Please convert this text into a bullet point list:"
+      proofread: settings.proofreadPrompt,
+      summarize: settings.summarizePrompt,
+      rewrite: settings.rewritePrompt,
+      makeList: settings.makeListPrompt
     };
     
     const result = await browserAPI.runtime.sendMessage({
