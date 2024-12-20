@@ -528,30 +528,6 @@ browserAPI.runtime.onMessage.addListener((message) => {
   }
 });
 
-// Modify quick action initialization to be more specific
-// document.addEventListener('DOMContentLoaded', () => {
-//   initializeTheme();
-//   initializeResponseArea();
-//   updateFooterInfo();
-//   initializeSettings(); // Add this line
-  
-//   // Remove or comment out the old settings button initialization
-//   // document.getElementById('toggleSettings').addEventListener('click', toggleSettingsPanel);
-  
-//   // Initialize settings link with separate handler
-//   document.getElementById('settingsLink').addEventListener('click', (e) => {
-//     e.preventDefault();
-//     // Prevent this event from being handled by quick action handlers
-//     e.stopPropagation();
-//     window.location.href = 'settings.html';
-//   });
-  
-//   // Only attach quick action handlers to buttons with .quick AND data-action
-//   document.querySelectorAll('.quick[data-action]').forEach(button => {
-//     button.addEventListener('click', handleQuickAction);
-//   });
-// });
-
 function initializeSettings() {
   const settingsButton = document.getElementById('toggleSettings');
   const settingsPanel = document.getElementById('settingsPanel');
@@ -606,14 +582,25 @@ function initializeSettings() {
 
 // Add to DOMContentLoaded event listener
 document.addEventListener('DOMContentLoaded', () => {
+  // Remove old event listeners before adding new ones
+  // document.querySelectorAll('.quick[data-action]').forEach(button => {
+  //   button.removeEventListener('click', handleQuickAction);
+  // });
+
   initializeTheme();
   initializeResponseArea();
   updateFooterInfo(); 
   initializeSettings(); // Add this line
   
-  // Remove or comment out the old settings button initialization
-  // document.getElementById('toggleSettings').addEventListener('click', toggleSettingsPanel);
-  
+  // Use event delegation instead of multiple listeners
+  document.addEventListener('click', (e) => {
+    const quickButton = e.target.closest('.quick[data-action]');
+    if (quickButton) {
+      e.stopPropagation();  // Prevent event bubbling
+      handleQuickAction.call(quickButton);
+    }
+  }, { capture: true });  // Use capture phase to handle event first
+
   // Initialize settings link with separate handler 
   const settingsLink = document.getElementById('settingsLink');
   if (settingsLink) {
@@ -626,11 +613,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Only attach quick action handlers to buttons with .quick AND data-action
-  document.querySelectorAll('.quick[data-action]').forEach(button => {
-    if (button) {
-      button.addEventListener('click', handleQuickAction);
-    }
-  });
+  // document.querySelectorAll('.quick[data-action]').forEach(button => {
+  //   if (button) {
+  //     button.addEventListener('click', handleQuickAction);
+  //   }
+  // });
 
   // Add question input validation
   const questionInput = document.getElementById('question');

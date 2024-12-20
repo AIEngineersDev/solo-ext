@@ -4,57 +4,79 @@ import { browserAPI, openSidePanel, getBrowserType, toggleSidebar } from './util
 const rateLimiter = {
   lastRequest: 0,
   minDelay: 1000, // 1 second between requests
+  pendingRequests: new Map()
 };
 
 async function sendToAPI(content) {
-  try {
-    const settings = await browserAPI.storage.sync.get(['apiType', 'apiUrl', 'apiToken', 'modelName', 'maxTokens']);
-    
-    let apiUrl = settings.apiUrl;
-    if (settings.apiType === 'huggingface') {
-      if (!settings.modelName) {
-        throw new Error('Model name is not configured. Please open settings and configure the model name.');
-      }
-      apiUrl = `https://api-inference.huggingface.co/models/${settings.modelName}`;
-    } else if (!apiUrl) {
-      throw new Error('API URL is not configured. Please open settings and configure the API URL.');
-    }
-
-    if (!content.trim()) {
-      throw new Error('Please enter some text to process.');
-    }
-
-    const client = new Client({
-      apiKey: settings.apiToken,
-      baseURL: apiUrl
-    });
-
-    const chatCompletion = await client.chat.completions.create({
-      model: settings.modelName || 'meta-llama/Llama-2-7b-chat',
-      messages: [{ role: "user", content: content }],
-      max_tokens: parseInt(settings.maxTokens) || 500
-    });
-
-    if (!chatCompletion.choices?.[0]?.message) {
-      throw new Error('Invalid response from API. Please check your settings and try again.');
-    }
-
-    return { success: true, message: chatCompletion.choices[0].message.content.trim() };
-  } catch (error) {
-    return { 
-      success: false, 
-      error: error.message
-    };
+  // Check if this exact request is already pending
+  const requestKey = content.trim();
+  if (rateLimiter.pendingRequests.has(requestKey)) {
+    return rateLimiter.pendingRequests.get(requestKey);
   }
+
+  // Implement rate limiting
+  const now = Date.now();
+  if (now - rateLimiter.lastRequest < rateLimiter.minDelay) {
+    return { success: false, error: 'Please wait a moment before sending another request.' };
+  }
+  rateLimiter.lastRequest = now;
+
+  // Create a new promise for this request
+  const requestPromise = (async () => {
+    try {
+      const settings = await browserAPI.storage.sync.get(['apiType', 'apiUrl', 'apiToken', 'modelName', 'maxTokens']);
+      
+      let apiUrl = settings.apiUrl;
+      if (settings.apiType === 'huggingface') {
+        if (!settings.modelName) {
+          throw new Error('Model name is not configured. Please open settings and configure the model name.');
+        }
+        apiUrl = `https://api-inference.huggingface.co/models/${settings.modelName}`;
+      } else if (!apiUrl) {
+        throw new Error('API URL is not configured. Please open settings and configure the API URL.');
+      }
+
+      if (!content.trim()) {
+        throw new Error('Please enter some text to process.');
+      }
+
+      const client = new Client({
+        apiKey: settings.apiToken,
+        baseURL: apiUrl
+      });
+
+      const chatCompletion = await client.chat.completions.create({
+        model: settings.modelName || 'meta-llama/Llama-2-7b-chat',
+        messages: [{ role: "user", content: content }],
+        max_tokens: parseInt(settings.maxTokens) || 500
+      });
+
+      if (!chatCompletion.choices?.[0]?.message) {
+        throw new Error('Invalid response from API. Please check your settings and try again.');
+      }
+
+      return { success: true, message: chatCompletion.choices[0].message.content.trim() };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error.message
+      };
+    } finally {
+      // Clean up the pending request
+      rateLimiter.pendingRequests.delete(requestKey);
+    }
+  })();
+
+  // Store the promise in pending requests
+  rateLimiter.pendingRequests.set(requestKey, requestPromise);
+  return requestPromise;
 }
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+// Use a single message listener
+const messageHandler = (request, sender, sendResponse) => {
   if (request.action === 'sendToAPI') {
-    // Handle the API request
     sendToAPI(request.content)
-      .then(result => {
-        sendResponse(result);
-      })
+      .then(sendResponse)
       .catch(error => {
         sendResponse({ 
           success: false, 
@@ -63,7 +85,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
     return true; // Required for async response
   }
-});
+};
+
+// Remove any existing listeners and add the new one
+browserAPI.runtime.onMessage.removeListener(messageHandler);
+browserAPI.runtime.onMessage.addListener(messageHandler);
 
 // Add settings change listener
 chrome.storage.onChanged.addListener((changes, namespace) => {
