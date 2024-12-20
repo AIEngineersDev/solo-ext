@@ -8,9 +8,15 @@ const rateLimiter = {
 
 async function sendToAPI(content) {
   try {
-    const settings = await browserAPI.storage.sync.get(['apiUrl', 'apiToken', 'modelName', 'maxTokens']);
+    const settings = await browserAPI.storage.sync.get(['apiType', 'apiUrl', 'apiToken', 'modelName', 'maxTokens']);
     
-    if (!settings.apiUrl) {
+    let apiUrl = settings.apiUrl;
+    if (settings.apiType === 'huggingface') {
+      if (!settings.modelName) {
+        throw new Error('Model name is not configured. Please open settings and configure the model name.');
+      }
+      apiUrl = `https://api-inference.huggingface.co/models/${settings.modelName}`;
+    } else if (!apiUrl) {
       throw new Error('API URL is not configured. Please open settings and configure the API URL.');
     }
 
@@ -20,7 +26,7 @@ async function sendToAPI(content) {
 
     const client = new Client({
       apiKey: settings.apiToken,
-      baseURL: settings.apiUrl
+      baseURL: apiUrl
     });
 
     const chatCompletion = await client.chat.completions.create({

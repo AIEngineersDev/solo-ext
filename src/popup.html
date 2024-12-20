@@ -75,11 +75,22 @@
                     <!-- API Settings Group -->
                     <div class="space-y-2">
                         <label class="block">
-                            <span class="text-xs font-medium text-surface-700 dark:text-dark-surface-700">API URL</span>
-                            <input type="text" id="apiUrl" 
-                                class="mt-1 w-full h-8 px-2 text-sm rounded-md border-surface-200 dark:border-dark-surface-200 bg-white dark:bg-dark-surface-100 text-surface-900 dark:text-dark-surface-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-                                placeholder="http://localhost:8000">
+                            <span class="text-xs font-medium text-surface-700 dark:text-dark-surface-700">API Type</span>
+                            <select id="apiType" 
+                                class="mt-1 w-full h-8 px-2 text-sm rounded-md border-surface-200 dark:border-dark-surface-200 bg-white dark:bg-dark-surface-100 text-surface-900 dark:text-dark-surface-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                                <option value="custom">Custom API</option>
+                                <option value="huggingface">Hugging Face</option>
+                            </select>
                         </label>
+
+                        <div id="customApiSection">
+                            <label class="block">
+                                <span class="text-xs font-medium text-surface-700 dark:text-dark-surface-700">API URL</span>
+                                <input type="text" id="apiUrl" 
+                                    class="mt-1 w-full h-8 px-2 text-sm rounded-md border-surface-200 dark:border-dark-surface-200 bg-white dark:bg-dark-surface-100 text-surface-900 dark:text-dark-surface-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                                    placeholder="http://localhost:8000">
+                            </label>
+                        </div>
 
                         <label class="block">
                             <span class="text-xs font-medium text-surface-700 dark:text-dark-surface-700">API Token</span>

@@ -45,15 +45,15 @@ const defaultPrompts = {
   makeList: "Please convert this text into a bullet point list:"
 };
 
-// Modify loadSettings to include prompts
+// Modify loadSettings to include apiType
 async function loadSettings() {
   const settings = await browserAPI.storage.sync.get({
+    apiType: 'custom',
     apiUrl: 'http://localhost:8000',
     apiToken: '',
     modelName: 'meta-llama/Llama-2-7b-chat',
     maxTokens: 500,
     theme: 'light',
-    // Add default prompts
     proofreadPrompt: defaultPrompts.proofread,
     summarizePrompt: defaultPrompts.summarize,
     rewritePrompt: defaultPrompts.rewrite,
@@ -61,22 +61,33 @@ async function loadSettings() {
   });
   
   // Populate form fields
+  document.getElementById('apiType').value = settings.apiType;
   document.getElementById('apiUrl').value = settings.apiUrl;
   document.getElementById('apiToken').value = settings.apiToken;
   document.getElementById('modelName').value = settings.modelName;
   document.getElementById('maxTokens').value = settings.maxTokens;
   document.getElementById('theme').value = settings.theme;
   
+  // Show/hide API URL based on API type
+  const customApiSection = document.getElementById('customApiSection');
+  customApiSection.style.display = settings.apiType === 'custom' ? 'block' : 'none';
+  
   // Populate prompt fields
-  document.getElementById('proofreadPrompt').value = settings.proofreadPrompt;
-  document.getElementById('summarizePrompt').value = settings.summarizePrompt;
-  document.getElementById('rewritePrompt').value = settings.rewritePrompt;
-  document.getElementById('makeListPrompt').value = settings.makeListPrompt;
+  document.getElementById('proofreadPrompt').value = settings.proofreadPrompt || defaultPrompts.proofread;
+  document.getElementById('summarizePrompt').value = settings.summarizePrompt || defaultPrompts.summarize;
+  document.getElementById('rewritePrompt').value = settings.rewritePrompt || defaultPrompts.rewrite;
+  document.getElementById('makeListPrompt').value = settings.makeListPrompt || defaultPrompts.makeList;
 
   applyTheme(settings.theme);
 }
 
-// Modify handleSaveSettings to save prompts
+// Add API type change handler
+function handleApiTypeChange(event) {
+  const customApiSection = document.getElementById('customApiSection');
+  customApiSection.style.display = event.target.value === 'custom' ? 'block' : 'none';
+}
+
+// Modify handleSaveSettings to handle API type
 async function handleSaveSettings() {
   const saveButton = document.getElementById('saveSettings');
   const saveMessage = document.getElementById('saveMessage');
@@ -85,20 +96,25 @@ async function handleSaveSettings() {
   saveMessage.classList.remove('hidden');
   
   try {
-    const apiUrl = document.getElementById('apiUrl').value.trim();
-    const apiToken = document.getElementById('apiToken').value.trim();
+    const apiType = document.getElementById('apiType').value;
     const modelName = document.getElementById('modelName').value.trim();
+    const apiToken = document.getElementById('apiToken').value.trim();
     const maxTokens = parseInt(document.getElementById('maxTokens').value);
     const theme = document.getElementById('theme').value;
     
-    // Get prompt values
-    const proofreadPrompt = document.getElementById('proofreadPrompt').value.trim() || defaultPrompts.proofread;
-    const summarizePrompt = document.getElementById('summarizePrompt').value.trim() || defaultPrompts.summarize;
-    const rewritePrompt = document.getElementById('rewritePrompt').value.trim() || defaultPrompts.rewrite;
-    const makeListPrompt = document.getElementById('makeListPrompt').value.trim() || defaultPrompts.makeList;
+    // Determine API URL based on type
+    let apiUrl;
+    if (apiType === 'custom') {
+      apiUrl = document.getElementById('apiUrl').value.trim();
+      if (!apiUrl) throw new Error('API URL is required for custom API');
+    } else {
+      // For Hugging Face, construct the URL using the model name
+      if (!modelName) throw new Error('Model name is required for Hugging Face API');
+      apiUrl = `https://api-inference.huggingface.co/models/${modelName}`;
+    }
 
     // Validate
-    if (!apiUrl) throw new Error('API URL is required');
+    if (apiType === 'custom' && !apiUrl) throw new Error('API URL is required');
     if (!maxTokens || maxTokens < 1 || maxTokens > 2048) {
       throw new Error('Max tokens must be between 1 and 2048');
     }
@@ -108,8 +124,15 @@ async function handleSaveSettings() {
       await saveToken(apiToken);
     }
 
+    // Get prompt values from form
+    const proofreadPrompt = document.getElementById('proofreadPrompt').value;
+    const summarizePrompt = document.getElementById('summarizePrompt').value;
+    const rewritePrompt = document.getElementById('rewritePrompt').value;
+    const makeListPrompt = document.getElementById('makeListPrompt').value;
+
     // Save settings including prompts
     await browserAPI.storage.sync.set({
+      apiType,
       apiUrl,
       modelName,
       maxTokens,
@@ -256,16 +279,14 @@ async function handleQuickAction() {
       makeListPrompt: defaultPrompts.makeList
     });
     
-    const prompts = {
-      proofread: settings.proofreadPrompt,
-      summarize: settings.summarizePrompt,
-      rewrite: settings.rewritePrompt,
-      makeList: settings.makeListPrompt
-    };
+    const action = this.dataset.action;
+    const promptKey = `${action}Prompt`;
+    const promptText = String(settings[promptKey] || defaultPrompts[action]);
     
+    // Send the prompt + content to the API
     const result = await browserAPI.runtime.sendMessage({
       action: 'sendToAPI',
-      content: `${prompts[this.dataset.action]} ${content}`
+      content: `${promptText} ${content}`
     });
     
     if (browserAPI.runtime.lastError) {
@@ -330,81 +351,6 @@ function handleCopyToClipboard() {
     });
   }
 }
-
-// Add to DOMContentLoaded event listener
-document.addEventListener('DOMContentLoaded', () => {
-  initializeTheme();
-  initializeResponseArea();
-  updateFooterInfo();
-  initializeSettings(); // Add this line
-  
-  // Remove or comment out the old settings button initialization
-  // document.getElementById('toggleSettings').addEventListener('click', toggleSettingsPanel);
-  
-  // Initialize settings link and handler
-  const settingsLink = document.getElementById('settingsLink');
-  if (settingsLink) {
-    settingsLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      window.location.href = 'settings.html';
-    });
-  }
-  
-  // Initialize quick action buttons
-  document.querySelectorAll('.quick').forEach(button => {
-    if (button) {
-      button.addEventListener('click', handleQuickAction);
-    }
-  });
-  
-  // Add question input validation
-  const questionInput = document.getElementById('question');
-  const sendToChat = document.getElementById('sendToChat');
-  
-  questionInput.addEventListener('input', () => {
-    sendToChat.disabled = !questionInput.value.trim();
-  });
-  
-  // Initialize send to chat button
-  if (sendToChat) {
-    sendToChat.addEventListener('click', handleSendToChat);
-  }
-  
-  // Initialize question input and clear button
-  const clearQuestion = document.getElementById('clearQuestion');
-  
-  // Check initial state
-  clearQuestion.classList.toggle('hidden', !questionInput.value.trim());
-  sendToChat.disabled = !questionInput.value.trim();
-  
-  questionInput.addEventListener('input', () => {
-    sendToChat.disabled = !questionInput.value.trim();
-    clearQuestion.classList.toggle('hidden', !questionInput.value.trim());
-  });
-  
-  clearQuestion.addEventListener('click', () => {
-    questionInput.value = '';
-    sendToChat.disabled = true;
-    clearQuestion.classList.add('hidden');
-  });
-
-  const copyButton = document.getElementById('copyToClipboard');
-  if (copyButton) {
-    copyButton.addEventListener('click', handleCopyToClipboard);
-  }
-  
-  // Start content loading
-  loadTabContent();
-
-  // Initialize settings
-  loadSettings();
-  
-  // Add settings toggle handler
-  document.getElementById('toggleSettings').addEventListener('click', toggleSettingsPanel);
-  
-  // Add save settings handler
-  document.getElementById('saveSettings').addEventListener('click', handleSaveSettings);
-});
 
 // Clear UI state when changing tabs
 function clearUIState() {
@@ -583,28 +529,28 @@ browserAPI.runtime.onMessage.addListener((message) => {
 });
 
 // Modify quick action initialization to be more specific
-document.addEventListener('DOMContentLoaded', () => {
-  initializeTheme();
-  initializeResponseArea();
-  updateFooterInfo();
-  initializeSettings(); // Add this line
+// document.addEventListener('DOMContentLoaded', () => {
+//   initializeTheme();
+//   initializeResponseArea();
+//   updateFooterInfo();
+//   initializeSettings(); // Add this line
   
-  // Remove or comment out the old settings button initialization
-  // document.getElementById('toggleSettings').addEventListener('click', toggleSettingsPanel);
+//   // Remove or comment out the old settings button initialization
+//   // document.getElementById('toggleSettings').addEventListener('click', toggleSettingsPanel);
   
-  // Initialize settings link with separate handler
-  document.getElementById('settingsLink').addEventListener('click', (e) => {
-    e.preventDefault();
-    // Prevent this event from being handled by quick action handlers
-    e.stopPropagation();
-    window.location.href = 'settings.html';
-  });
+//   // Initialize settings link with separate handler
+//   document.getElementById('settingsLink').addEventListener('click', (e) => {
+//     e.preventDefault();
+//     // Prevent this event from being handled by quick action handlers
+//     e.stopPropagation();
+//     window.location.href = 'settings.html';
+//   });
   
-  // Only attach quick action handlers to buttons with .quick AND data-action
-  document.querySelectorAll('.quick[data-action]').forEach(button => {
-    button.addEventListener('click', handleQuickAction);
-  });
-});
+//   // Only attach quick action handlers to buttons with .quick AND data-action
+//   document.querySelectorAll('.quick[data-action]').forEach(button => {
+//     button.addEventListener('click', handleQuickAction);
+//   });
+// });
 
 function initializeSettings() {
   const settingsButton = document.getElementById('toggleSettings');
@@ -650,4 +596,93 @@ function initializeSettings() {
     // Get fresh reference and add listener
     document.getElementById('saveSettings').addEventListener('click', handleSaveSettings);
   }
+
+  // Add API type change listener
+  const apiTypeSelect = document.getElementById('apiType');
+  if (apiTypeSelect) {
+    apiTypeSelect.addEventListener('change', handleApiTypeChange);
+  }
 }
+
+// Add to DOMContentLoaded event listener
+document.addEventListener('DOMContentLoaded', () => {
+  initializeTheme();
+  initializeResponseArea();
+  updateFooterInfo(); 
+  initializeSettings(); // Add this line
+  
+  // Remove or comment out the old settings button initialization
+  // document.getElementById('toggleSettings').addEventListener('click', toggleSettingsPanel);
+  
+  // Initialize settings link with separate handler 
+  const settingsLink = document.getElementById('settingsLink');
+  if (settingsLink) {
+    settingsLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Prevent this event from being handled by quick action handlers
+      e.stopPropagation(); 
+      window.location.href = 'settings.html';
+    });
+  }
+
+  // Only attach quick action handlers to buttons with .quick AND data-action
+  document.querySelectorAll('.quick[data-action]').forEach(button => {
+    if (button) {
+      button.addEventListener('click', handleQuickAction);
+    }
+  });
+
+  // Add question input validation
+  const questionInput = document.getElementById('question');
+  const sendToChat = document.getElementById('sendToChat');
+  
+  if (questionInput) {
+    questionInput.addEventListener('input', () => {
+      if (sendToChat) {
+        sendToChat.disabled = !questionInput.value.trim();
+      }
+    });
+  }
+
+  // Initialize send to chat button
+  if (sendToChat) {
+    sendToChat.addEventListener('click', handleSendToChat);
+  }
+
+  // Initialize question input and clear button  
+  const clearQuestion = document.getElementById('clearQuestion');
+  
+  if (clearQuestion && questionInput) {
+    // Check initial state
+    clearQuestion.classList.toggle('hidden', !questionInput.value.trim());
+    if (sendToChat) {
+      sendToChat.disabled = !questionInput.value.trim();
+    }
+
+    questionInput.addEventListener('input', () => {
+      if (sendToChat) {
+        sendToChat.disabled = !questionInput.value.trim();
+      }
+      clearQuestion.classList.toggle('hidden', !questionInput.value.trim());
+    });
+
+    clearQuestion.addEventListener('click', () => {
+      questionInput.value = '';
+      if (sendToChat) {
+        sendToChat.disabled = true;
+      }
+      clearQuestion.classList.add('hidden');
+    });
+  }
+
+  const copyButton = document.getElementById('copyToClipboard');
+  if (copyButton) {
+    copyButton.addEventListener('click', handleCopyToClipboard);
+  }
+
+  // Start content loading
+  loadTabContent();
+
+  // Initialize settings
+  loadSettings();
+});
